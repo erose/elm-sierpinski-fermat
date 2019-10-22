@@ -13,8 +13,14 @@ type alias Triangle =
     Array String
 
 
+type Showing
+    = ShowingCalculationAndResult
+    | ShowingCalculation
+    | ShowingNeither
+
+
 type alias Model =
-    { triangle : Triangle, blocksOn : Bool }
+    { triangle : Triangle, blocksOn : Bool, showing : Showing }
 
 
 main : Program () Model Msg
@@ -26,6 +32,7 @@ initialModel : Model
 initialModel =
     { triangle = Array.fromList [ "1", "11", "101" ]
     , blocksOn = False
+    , showing = ShowingNeither
     }
 
 
@@ -43,7 +50,15 @@ update msg model =
     in
     case msg of
         Step ->
-            { model | triangle = Array.push nextTriangleLine model.triangle }
+            case model.showing of
+                ShowingNeither ->
+                    { model | showing = ShowingCalculation }
+
+                ShowingCalculation ->
+                    { model | showing = ShowingCalculationAndResult }
+
+                ShowingCalculationAndResult ->
+                    { model | triangle = Array.push nextTriangleLine model.triangle, showing = ShowingNeither }
 
         ToggleBlocks ->
             { model | blocksOn = not model.blocksOn }
@@ -167,16 +182,19 @@ view : Model -> Html Msg
 view model =
     let
         triangleDivs =
-            Array.toList <| Array.indexedMap lineDiv model.triangle
+            Array.toList <| Array.indexedMap rowDiv model.triangle
 
-        lineDiv index line =
+        rowDiv index line =
             let
                 isLastLine =
                     index == (Array.length model.triangle - 1)
 
-                nonEquationStyles =
+                lineStyles =
                     List.append [ style "white-space" "nowrap" ] <|
-                        if model.blocksOn then
+                        if isLastLine && not showingLastLine then
+                            [ style "visibility" "hidden" ]
+
+                        else if model.blocksOn then
                             []
 
                         else if index == lastFermatNumberIndex model.triangle then
@@ -190,19 +208,25 @@ view model =
 
                         else
                             []
+
+                showingCalculation =
+                    model.showing == ShowingCalculation || model.showing == ShowingCalculationAndResult
+
+                showingLastLine =
+                    model.showing == ShowingCalculationAndResult
             in
             div [ style "white-space" "nowrap" ]
-                [ span nonEquationStyles (renderStringAsSpans line)
+                [ span lineStyles (renderStringAsSpans line)
                 , span []
-                    (if isLastLine then
-                        [ span [] equationSpans ]
+                    (if isLastLine && showingCalculation then
+                        [ span [] calculationSpans ]
 
                      else
                         []
                     )
                 ]
 
-        equationSpans =
+        calculationSpans =
             let
                 a =
                     optimisticGet (lineThatWasMultipliedIndex model.triangle) model.triangle
