@@ -4,7 +4,8 @@ import Array exposing (Array)
 import Bitwise
 import Browser
 import Debug
-import Html exposing (Html, button, div, text)
+import Html exposing (Html, button, div, span, text)
+import Html.Attributes exposing (class, style)
 import Html.Events exposing (onClick)
 
 
@@ -13,20 +14,23 @@ type alias Triangle =
 
 
 type alias Model =
-    { triangle : Triangle }
+    { triangle : Triangle, colorsOn : Bool }
 
 
 main : Program () Model Msg
 main =
     let
         initialModel =
-            { triangle = Array.fromList [ "1", "11", "101" ] }
+            { triangle = Array.fromList [ "1", "11", "101" ]
+            , colorsOn = False
+            }
     in
     Browser.sandbox { init = initialModel, update = update, view = view }
 
 
 type Msg
     = Step
+    | ToggleColors
 
 
 update : Msg -> Model -> Model
@@ -38,6 +42,9 @@ update msg model =
     case msg of
         Step ->
             { model | triangle = Array.push nextTriangleLine model.triangle }
+
+        ToggleColors ->
+            { model | colorsOn = not model.colorsOn }
 
 
 optimisticGet : Int -> Array a -> a
@@ -104,9 +111,31 @@ view : Model -> Html Msg
 view model =
     let
         triangleDivs =
-            Array.toList <| Array.map (\line -> div [] [ text line ]) model.triangle
+            Array.toList <| Array.map lineToElements model.triangle
+
+        lineToElements line =
+            div [] <| List.append (lineSpans line) [ equationSpan ]
+
+        equationSpan =
+            span [ style "margin-left" "1rem" ] [ text " = 3 x 2" ]
+
+        lineSpans line =
+            List.map (\char -> span (charStyles char) [ text <| String.fromChar char ]) (String.toList line)
+
+        charStyles char =
+            if model.colorsOn then
+                case char of
+                    '0' ->
+                        [ style "background-color" "blue" ]
+
+                    _ ->
+                        [ style "background-color" "black", style "color" "white" ]
+
+            else
+                []
     in
     div []
         [ button [ onClick Step ] [ text "Next" ]
-        , div [] triangleDivs
+        , button [ onClick ToggleColors ] [ text "Colors On/Off" ]
+        , div [ style "font-family" "monospace", style "margin" "1rem" ] triangleDivs
         ]
