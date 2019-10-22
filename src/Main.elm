@@ -130,14 +130,14 @@ view : Model -> Html Msg
 view model =
     let
         triangleDivs =
-            Array.toList <| Array.indexedMap lineToElements model.triangle
+            Array.toList <| Array.indexedMap lineDiv model.triangle
 
-        lineToElements index line =
+        lineDiv index line =
             let
                 isLastLine =
                     index == (Array.length model.triangle - 1)
             in
-            div [] <|
+            div [ style "white-space" "nowrap" ] <|
                 List.append (lineSpans line) <|
                     if isLastLine then
                         [ equationSpan ]
