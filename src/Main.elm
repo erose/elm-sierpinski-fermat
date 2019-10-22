@@ -100,47 +100,6 @@ multiply fermat s =
     s ++ (String.dropLeft 1 <| String.dropRight (String.length s) fermat) ++ s
 
 
-
-----fromInt <| toInt a * toInt b
----- Convert a string of zeroes and ones to an integer.
---toInt : String -> Int
---toInt characters =
---    let
---        toInt_ i list =
---            case ( i, list ) of
---                ( _, [] ) ->
---                    0
---                ( _, '0' :: xs ) ->
---                    0 + toInt_ (i + 1) xs
---                ( _, '1' :: xs ) ->
---                    2 ^ i + toInt_ (i + 1) xs
---                ( _, _ ) ->
---                    Debug.todo <| "toInt_ failed with i: " ++ String.fromInt i ++ "and list: " ++ String.fromList list
---    in
---    toInt_ 0 (List.reverse <| String.toList characters)
---fromInt : Int -> String
---fromInt n =
---    let
---        fromInt_ i acc =
---            case i of
---                0 ->
---                    '0' :: acc
---                1 ->
---                    '1' :: acc
---                _ ->
---                    fromInt_ (Bitwise.shiftRightBy 1 i) ((toChar <| modBy 2 i) :: acc)
---    in
---    String.fromList <| List.reverse <| fromInt_ n []
------- TODO: Do I have to do this this way?
---toChar : Int -> Char
---toChar n =
---    case String.toList <| String.fromInt n of
---        x :: _ ->
---            x
---        _ ->
---            Debug.todo "toChar failed with an empty list"
-
-
 view : Model -> Html Msg
 view model =
     let
