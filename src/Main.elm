@@ -102,6 +102,15 @@ lastFermatNumberIndex triangle =
         2 ^ floor n
 
 
+
+-- TODO: Explain.
+
+
+lineThatWasMultipliedIndex : Triangle -> Int
+lineThatWasMultipliedIndex triangle =
+    Array.length triangle - lastFermatNumberIndex triangle - 1
+
+
 lastFermatNumber : Triangle -> String
 lastFermatNumber triangle =
     optimisticGet (lastFermatNumberIndex triangle) triangle
@@ -126,6 +135,34 @@ multiply fermat s =
     s ++ (String.dropLeft 1 <| String.dropRight (String.length s) fermat) ++ s
 
 
+
+-- VIEW
+
+
+red =
+    "#8B0000"
+
+
+blue =
+    "#6495ED"
+
+
+purple =
+    "#4B0082"
+
+
+green =
+    "#006400"
+
+
+orange =
+    "#FF8C00"
+
+
+white =
+    "#FFFFFF"
+
+
 view : Model -> Html Msg
 view model =
     let
@@ -136,40 +173,74 @@ view model =
             let
                 isLastLine =
                     index == (Array.length model.triangle - 1)
+
+                nonEquationStyles =
+                    List.append [ style "white-space" "nowrap" ] <|
+                        if model.blocksOn then
+                            []
+
+                        else if index == lastFermatNumberIndex model.triangle then
+                            [ style "color" red ]
+
+                        else if index == lineThatWasMultipliedIndex model.triangle then
+                            [ style "color" blue ]
+
+                        else if isLastLine then
+                            [ style "color" purple ]
+
+                        else
+                            []
             in
-            div [ style "white-space" "nowrap" ] <|
-                List.append (lineSpans line) <|
-                    if isLastLine then
-                        [ equationSpan ]
+            div [ style "white-space" "nowrap" ]
+                [ span nonEquationStyles (renderStringAsSpans line)
+                , span []
+                    (if isLastLine then
+                        [ span [] equationSpans ]
 
-                    else
+                     else
                         []
-
-        equationSpan =
-            span [ style "margin-left" "1rem" ] equationSpans
+                    )
+                ]
 
         equationSpans =
             let
                 a =
-                    lastFermatNumber model.triangle
+                    optimisticGet (lineThatWasMultipliedIndex model.triangle) model.triangle
 
-                -- TODO: Explain.
                 b =
-                    optimisticGet (Array.length model.triangle - lastFermatNumberIndex model.triangle - 1) model.triangle
+                    lastFermatNumber model.triangle
             in
-            lineSpans (" = " ++ a ++ " x " ++ b)
+            [ span [] [ text " = " ]
+            , span
+                (if not model.blocksOn then
+                    [ style "color" blue ]
 
-        lineSpans line =
-            List.map (\char -> span (charStyles char) [ text <| String.fromChar char ]) (String.toList line)
+                 else
+                    []
+                )
+                (renderStringAsSpans a)
+            , span [] [ text " x " ]
+            , span
+                (if not model.blocksOn then
+                    [ style "color" red ]
 
-        charStyles char =
+                 else
+                    []
+                )
+                (renderStringAsSpans b)
+            ]
+
+        renderStringAsSpans s =
+            List.map (\char -> span (blockCharStyles char) [ text <| String.fromChar char ]) (String.toList s)
+
+        blockCharStyles char =
             if model.blocksOn then
                 case char of
                     '0' ->
-                        [ style "background-color" "blue" ]
+                        [ style "background-color" orange ]
 
                     '1' ->
-                        [ style "background-color" "black", style "color" "white" ]
+                        [ style "background-color" green, style "color" white ]
 
                     _ ->
                         []
