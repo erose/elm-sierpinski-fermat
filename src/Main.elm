@@ -14,23 +14,25 @@ type alias Triangle =
 
 
 type alias Model =
-    { triangle : Triangle, colorsOn : Bool }
+    { triangle : Triangle, blocksOn : Bool }
 
 
 main : Program () Model Msg
 main =
-    let
-        initialModel =
-            { triangle = Array.fromList [ "1", "11", "101" ]
-            , colorsOn = False
-            }
-    in
     Browser.sandbox { init = initialModel, update = update, view = view }
+
+
+initialModel : Model
+initialModel =
+    { triangle = Array.fromList [ "1", "11", "101" ]
+    , blocksOn = False
+    }
 
 
 type Msg
     = Step
-    | ToggleColors
+    | ToggleBlocks
+    | Reset
 
 
 update : Msg -> Model -> Model
@@ -43,8 +45,11 @@ update msg model =
         Step ->
             { model | triangle = Array.push nextTriangleLine model.triangle }
 
-        ToggleColors ->
-            { model | colorsOn = not model.colorsOn }
+        ToggleBlocks ->
+            { model | blocksOn = not model.blocksOn }
+
+        Reset ->
+            initialModel
 
 
 optimisticGet : Int -> Array a -> a
@@ -63,16 +68,13 @@ isInteger f =
 
 
 nextLine : Triangle -> String
-nextLine lines =
+nextLine triangle =
     let
         numberOfLines =
-            Array.length lines
+            Array.length triangle
 
         n =
-            logBase 2 (toFloat <| Array.length lines)
-
-        lastFermatNumberIndex =
-            2 ^ floor n
+            logBase 2 (toFloat numberOfLines)
     in
     if isInteger n then
         -- If the number of lines is a power of two, we've exhausted everything we can get from the
@@ -81,11 +83,28 @@ nextLine lines =
 
     else
         let
-            lastFermatNumber =
-                optimisticGet lastFermatNumberIndex lines
+            lineToMultiply =
+                optimisticGet (numberOfLines - lastFermatNumberIndex triangle) triangle
         in
-        -- TODO: Explain.
-        multiply lastFermatNumber <| optimisticGet (numberOfLines - lastFermatNumberIndex) lines
+        multiply (lastFermatNumber triangle) lineToMultiply
+
+
+lastFermatNumberIndex : Triangle -> Int
+lastFermatNumberIndex triangle =
+    let
+        n =
+            logBase 2 (toFloat <| Array.length triangle)
+    in
+    if isInteger n then
+        2 ^ (floor n - 1)
+
+    else
+        2 ^ floor n
+
+
+lastFermatNumber : Triangle -> String
+lastFermatNumber triangle =
+    optimisticGet (lastFermatNumberIndex triangle) triangle
 
 
 
@@ -111,31 +130,56 @@ view : Model -> Html Msg
 view model =
     let
         triangleDivs =
-            Array.toList <| Array.map lineToElements model.triangle
+            Array.toList <| Array.indexedMap lineToElements model.triangle
 
-        lineToElements line =
-            div [] <| List.append (lineSpans line) [ equationSpan ]
+        lineToElements index line =
+            let
+                isLastLine =
+                    index == (Array.length model.triangle - 1)
+            in
+            div [] <|
+                List.append (lineSpans line) <|
+                    if isLastLine then
+                        [ equationSpan ]
+
+                    else
+                        []
 
         equationSpan =
-            span [ style "margin-left" "1rem" ] [ text " = 3 x 2" ]
+            span [ style "margin-left" "1rem" ] equationSpans
+
+        equationSpans =
+            let
+                a =
+                    lastFermatNumber model.triangle
+
+                -- TODO: Explain.
+                b =
+                    optimisticGet (Array.length model.triangle - lastFermatNumberIndex model.triangle - 1) model.triangle
+            in
+            lineSpans (" = " ++ a ++ " x " ++ b)
 
         lineSpans line =
             List.map (\char -> span (charStyles char) [ text <| String.fromChar char ]) (String.toList line)
 
         charStyles char =
-            if model.colorsOn then
+            if model.blocksOn then
                 case char of
                     '0' ->
                         [ style "background-color" "blue" ]
 
-                    _ ->
+                    '1' ->
                         [ style "background-color" "black", style "color" "white" ]
+
+                    _ ->
+                        []
 
             else
                 []
     in
     div []
         [ button [ onClick Step ] [ text "Next" ]
-        , button [ onClick ToggleColors ] [ text "Colors On/Off" ]
+        , button [ onClick ToggleBlocks ] [ text "Toggle Blocks" ]
+        , button [ onClick Reset ] [ text "Reset" ]
         , div [ style "font-family" "monospace", style "margin" "1rem" ] triangleDivs
         ]
