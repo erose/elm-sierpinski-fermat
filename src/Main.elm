@@ -129,7 +129,8 @@ lastFermatNumberIndex triangle =
 
 
 
--- TODO: Explain.
+-- The line in the triangle which we multiply by the last Fermat number to get the current bottom
+-- line of the triangle.
 
 
 currentMultiplicand : Triangle -> String
@@ -139,6 +140,10 @@ currentMultiplicand triangle =
             Array.length triangle - lastFermatNumberIndex triangle - 1
     in
     optimisticGet index triangle
+
+
+
+-- The last Fermat number in the triangle. There will always be one.
 
 
 lastFermatNumber : Triangle -> Fermat
@@ -225,7 +230,7 @@ renderRowDiv model index line =
             index == (Array.length model.triangle - 1)
 
         colorStylesFor =
-            colorStylesForModel model
+            colorStylesIfAllowedForModel model
 
         lineStyles =
             List.append [ style "white-space" "nowrap" ] <|
@@ -290,7 +295,7 @@ renderCalculationSpans model =
             currentMultiplicand model.triangle
 
         colorStylesFor =
-            colorStylesForModel model
+            colorStylesIfAllowedForModel model
 
         fermat =
             lastFermatNumber model.triangle
@@ -306,8 +311,8 @@ renderCalculationSpans model =
 -- When displaying characters as blocks, we do not allow other color styling.
 
 
-colorStylesForModel : Model -> Color -> List (Html.Attribute msg)
-colorStylesForModel model color =
+colorStylesIfAllowedForModel : Model -> Color -> List (Html.Attribute msg)
+colorStylesIfAllowedForModel model color =
     if model.blocksOn then
         []
 
