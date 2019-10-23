@@ -17,6 +17,10 @@ type alias Fermat =
     String
 
 
+type alias Color =
+    String
+
+
 type Showing
     = ShowingCalculationAndResult
     | ShowingCalculation
@@ -128,14 +132,13 @@ lastFermatNumberIndex triangle =
 -- TODO: Explain.
 
 
-currentMultiplicandIndex : Triangle -> Int
-currentMultiplicandIndex triangle =
-    Array.length triangle - lastFermatNumberIndex triangle - 1
-
-
 currentMultiplicand : Triangle -> String
 currentMultiplicand triangle =
-    optimisticGet (currentMultiplicandIndex triangle) triangle
+    let
+        index =
+            Array.length triangle - lastFermatNumberIndex triangle - 1
+    in
+    optimisticGet index triangle
 
 
 lastFermatNumber : Triangle -> Fermat
@@ -171,26 +174,32 @@ multiply fermat s =
 -- VIEW
 
 
+red : Color
 red =
     "#8B0000"
 
 
+blue : Color
 blue =
     "#6495ED"
 
 
+purple : Color
 purple =
     "#4B0082"
 
 
+green : Color
 green =
     "#006400"
 
 
+orange : Color
 orange =
     "#FF8C00"
 
 
+white : Color
 white =
     "#FFFFFF"
 
@@ -215,24 +224,19 @@ renderRowDiv model index line =
         isLastLine =
             index == (Array.length model.triangle - 1)
 
-        -- When displaying characters as blocks, we do not allow emphasis styling.
-        emphasisColorStyles color =
-            if model.blocksOn then
-                []
-
-            else
-                [ style "color" color ]
+        colorStylesFor =
+            colorStylesForModel model
 
         lineStyles =
             List.append [ style "white-space" "nowrap" ] <|
                 if isLastLine && not showingLastLine then
                     [ style "visibility" "hidden" ]
 
-                else if index == lastFermatNumberIndex model.triangle then
-                    emphasisColorStyles red
+                else if line == lastFermatNumber model.triangle then
+                    colorStylesFor red
 
-                else if index == currentMultiplicandIndex model.triangle then
-                    emphasisColorStyles blue
+                else if line == currentMultiplicand model.triangle then
+                    colorStylesFor blue
 
                 else
                     []
@@ -255,9 +259,9 @@ renderRowDiv model index line =
                 ( _, remainingFermatDigits ) =
                     multiply fermat s
             in
-            [ span (emphasisColorStyles blue) (renderStringAsSpans model s)
-            , span (emphasisColorStyles red) (renderStringAsSpans model remainingFermatDigits)
-            , span (emphasisColorStyles blue) (renderStringAsSpans model s)
+            [ span (colorStylesFor blue) (renderStringAsSpans model s)
+            , span (colorStylesFor red) (renderStringAsSpans model remainingFermatDigits)
+            , span (colorStylesFor blue) (renderStringAsSpans model s)
             ]
     in
     div [ style "white-space" "nowrap" ]
@@ -285,23 +289,30 @@ renderCalculationSpans model =
         s =
             currentMultiplicand model.triangle
 
-        -- TODO: Duplicate.
-        -- When displaying characters as blocks, we do not allow emphasis styling.
-        emphasisColorStyles color =
-            if model.blocksOn then
-                []
-
-            else
-                [ style "color" color ]
+        colorStylesFor =
+            colorStylesForModel model
 
         fermat =
             lastFermatNumber model.triangle
     in
     [ span [] [ text " = " ]
-    , span (emphasisColorStyles blue) (renderStringAsSpans model fermat)
+    , span (colorStylesFor blue) (renderStringAsSpans model fermat)
     , span [] [ text " x " ]
-    , span (emphasisColorStyles red) (renderStringAsSpans model s)
+    , span (colorStylesFor red) (renderStringAsSpans model s)
     ]
+
+
+
+-- When displaying characters as blocks, we do not allow other color styling.
+
+
+colorStylesForModel : Model -> Color -> List (Html.Attribute msg)
+colorStylesForModel model color =
+    if model.blocksOn then
+        []
+
+    else
+        [ style "color" color ]
 
 
 renderStringAsSpans : Model -> String -> List (Html msg)
