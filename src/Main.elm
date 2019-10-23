@@ -195,99 +195,19 @@ view : Model -> Html Msg
 view model =
     let
         triangleDivs =
-            Array.toList <| Array.indexedMap rowDiv model.triangle
+            Array.toList <| Array.indexedMap (\index line -> renderRowDiv model index line) model.triangle
+    in
+    div []
+        [ button [ onClick Step ] [ text "Next" ]
+        , button [ onClick ToggleBlocks ] [ text "Toggle Blocks" ]
+        , button [ onClick Reset ] [ text "Reset" ]
+        , div [ style "font-family" "monospace", style "margin" "1rem" ] triangleDivs
+        ]
 
-        rowDiv index line =
-            let
-                isLastLine =
-                    index == (Array.length model.triangle - 1)
 
-                lineStyles =
-                    List.append [ style "white-space" "nowrap" ] <|
-                        if isLastLine && not showingLastLine then
-                            [ style "visibility" "hidden" ]
-
-                        else if model.blocksOn then
-                            []
-
-                        else if index == lastFermatNumberIndex model.triangle then
-                            [ style "color" red ]
-
-                        else if index == lineThatWasMultipliedIndex model.triangle then
-                            [ style "color" blue ]
-
-                        else
-                            []
-
-                showingCalculation =
-                    model.showing == ShowingCalculation || model.showing == ShowingCalculationAndResult
-
-                showingLastLine =
-                    model.showing == ShowingCalculationAndResult
-            in
-            div [ style "white-space" "nowrap" ]
-                [ --  Content of the line.
-                  if isLastLine then
-                    span lineStyles renderLastLineAsSpans
-
-                  else
-                    span lineStyles <| renderStringAsSpans line
-
-                -- Calculation, if we are displaying one.
-                , span []
-                    (if isLastLine && showingCalculation then
-                        [ span [] calculationSpans ]
-
-                     else
-                        []
-                    )
-                ]
-
-        -- Show it in pieces to illustrate how the multiplication worked.
-        renderLastLineAsSpans =
-            let
-                a =
-                    optimisticGet (lineThatWasMultipliedIndex model.triangle) model.triangle
-
-                b =
-                    lastFermatNumber model.triangle
-            in
-            [ span [ style "color" blue ] [ text a ]
-            , span [ style "color" red ] [ text <| remainingDigitsOfWhenMultipliedBy b a ]
-            , span [ style "color" blue ] [ text a ]
-            ]
-
-        calculationSpans =
-            let
-                a =
-                    optimisticGet (lineThatWasMultipliedIndex model.triangle) model.triangle
-
-                b =
-                    lastFermatNumber model.triangle
-            in
-            [ span [] [ text " = " ]
-            , span
-                (if not model.blocksOn then
-                    [ style "color" blue ]
-
-                 else
-                    []
-                )
-                (renderStringAsSpans a)
-            , span [] [ text " x " ]
-            , span
-                (if not model.blocksOn then
-                    [ style "color" red ]
-
-                 else
-                    []
-                )
-                (renderStringAsSpans b)
-            ]
-
-        renderStringAsSpans s =
-            List.map (\char -> span (blockCharStyles char) [ text <| String.fromChar char ]) (String.toList s)
-
+renderStringAsSpans : Model -> String -> List (Html msg)
+renderStringAsSpans model s =
+    let
         blockCharStyles char =
             if model.blocksOn then
                 case char of
@@ -303,9 +223,96 @@ view model =
             else
                 []
     in
-    div []
-        [ button [ onClick Step ] [ text "Next" ]
-        , button [ onClick ToggleBlocks ] [ text "Toggle Blocks" ]
-        , button [ onClick Reset ] [ text "Reset" ]
-        , div [ style "font-family" "monospace", style "margin" "1rem" ] triangleDivs
+    List.map (\char -> span (blockCharStyles char) [ text <| String.fromChar char ]) (String.toList s)
+
+
+renderRowDiv : Model -> Int -> String -> Html msg
+renderRowDiv model index line =
+    let
+        isLastLine =
+            index == (Array.length model.triangle - 1)
+
+        lineStyles =
+            List.append [ style "white-space" "nowrap" ] <|
+                if isLastLine && not showingLastLine then
+                    [ style "visibility" "hidden" ]
+
+                else if model.blocksOn then
+                    []
+
+                else if index == lastFermatNumberIndex model.triangle then
+                    [ style "color" red ]
+
+                else if index == lineThatWasMultipliedIndex model.triangle then
+                    [ style "color" blue ]
+
+                else
+                    []
+
+        showingCalculation =
+            model.showing == ShowingCalculation || model.showing == ShowingCalculationAndResult
+
+        showingLastLine =
+            model.showing == ShowingCalculationAndResult
+
+        -- Show it in pieces to illustrate how the multiplication worked.
+        renderLastLineAsSpans =
+            let
+                a =
+                    optimisticGet (lineThatWasMultipliedIndex model.triangle) model.triangle
+
+                b =
+                    lastFermatNumber model.triangle
+            in
+            [ span [ style "color" blue ] [ text a ]
+            , span [ style "color" red ] [ text <| remainingDigitsOfWhenMultipliedBy b a ]
+            , span [ style "color" blue ] [ text a ]
+            ]
+    in
+    div [ style "white-space" "nowrap" ]
+        [ --  Content of the line.
+          if isLastLine then
+            span lineStyles renderLastLineAsSpans
+
+          else
+            span lineStyles <| renderStringAsSpans model line
+
+        -- Calculation, if we are displaying one.
+        , span []
+            (if isLastLine && showingCalculation then
+                [ span [] (renderCalculationSpans model) ]
+
+             else
+                []
+            )
         ]
+
+
+renderCalculationSpans : Model -> List (Html msg)
+renderCalculationSpans model =
+    let
+        a =
+            optimisticGet (lineThatWasMultipliedIndex model.triangle) model.triangle
+
+        b =
+            lastFermatNumber model.triangle
+    in
+    [ span [] [ text " = " ]
+    , span
+        (if not model.blocksOn then
+            [ style "color" blue ]
+
+         else
+            []
+        )
+        (renderStringAsSpans model a)
+    , span [] [ text " x " ]
+    , span
+        (if not model.blocksOn then
+            [ style "color" red ]
+
+         else
+            []
+        )
+        (renderStringAsSpans model b)
+    ]
