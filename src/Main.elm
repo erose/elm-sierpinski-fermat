@@ -147,7 +147,20 @@ nthFermatNumber n =
 
 multiply : String -> String -> String
 multiply fermat s =
-    s ++ (String.dropLeft 1 <| String.dropRight (String.length s) fermat) ++ s
+    s ++ remainingDigitsOfWhenMultipliedBy fermat s ++ s
+
+
+
+-- TODO: Explain.
+
+
+remainingDigitsOfWhenMultipliedBy : String -> String -> String
+remainingDigitsOfWhenMultipliedBy fermat s =
+    let
+        _ =
+            Debug.log "fermat" fermat
+    in
+    String.dropLeft 1 <| String.dropRight (String.length s) fermat
 
 
 
@@ -203,9 +216,6 @@ view model =
                         else if index == lineThatWasMultipliedIndex model.triangle then
                             [ style "color" blue ]
 
-                        else if isLastLine then
-                            [ style "color" purple ]
-
                         else
                             []
 
@@ -216,7 +226,14 @@ view model =
                     model.showing == ShowingCalculationAndResult
             in
             div [ style "white-space" "nowrap" ]
-                [ span lineStyles (renderStringAsSpans line)
+                [ --  Content of the line.
+                  if isLastLine then
+                    span lineStyles renderLastLineAsSpans
+
+                  else
+                    span lineStyles <| renderStringAsSpans line
+
+                -- Calculation, if we are displaying one.
                 , span []
                     (if isLastLine && showingCalculation then
                         [ span [] calculationSpans ]
@@ -225,6 +242,20 @@ view model =
                         []
                     )
                 ]
+
+        -- Show it in pieces to illustrate how the multiplication worked.
+        renderLastLineAsSpans =
+            let
+                a =
+                    optimisticGet (lineThatWasMultipliedIndex model.triangle) model.triangle
+
+                b =
+                    lastFermatNumber model.triangle
+            in
+            [ span [ style "color" blue ] [ text a ]
+            , span [ style "color" red ] [ text <| remainingDigitsOfWhenMultipliedBy b a ]
+            , span [ style "color" blue ] [ text a ]
+            ]
 
         calculationSpans =
             let
