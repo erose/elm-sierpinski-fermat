@@ -194,36 +194,15 @@ white =
 view : Model -> Html Msg
 view model =
     let
-        triangleDivs =
+        rowDivs =
             Array.toList <| Array.indexedMap (\index line -> renderRowDiv model index line) model.triangle
     in
     div []
         [ button [ onClick Step ] [ text "Next" ]
         , button [ onClick ToggleBlocks ] [ text "Toggle Blocks" ]
         , button [ onClick Reset ] [ text "Reset" ]
-        , div [ style "font-family" "monospace", style "margin" "1rem" ] triangleDivs
+        , div [ style "font-family" "monospace", style "margin" "1rem" ] rowDivs
         ]
-
-
-renderStringAsSpans : Model -> String -> List (Html msg)
-renderStringAsSpans model s =
-    let
-        blockCharStyles char =
-            if model.blocksOn then
-                case char of
-                    '0' ->
-                        [ style "background-color" orange ]
-
-                    '1' ->
-                        [ style "background-color" green, style "color" white ]
-
-                    _ ->
-                        []
-
-            else
-                []
-    in
-    List.map (\char -> span (blockCharStyles char) [ text <| String.fromChar char ]) (String.toList s)
 
 
 renderRowDiv : Model -> Int -> String -> Html msg
@@ -232,19 +211,24 @@ renderRowDiv model index line =
         isLastLine =
             index == (Array.length model.triangle - 1)
 
+        -- When displaying characters as blocks, we do not allow emphasis styling.
+        emphasisColorStyles color =
+            if model.blocksOn then
+                []
+
+            else
+                [ style "color" color ]
+
         lineStyles =
             List.append [ style "white-space" "nowrap" ] <|
                 if isLastLine && not showingLastLine then
                     [ style "visibility" "hidden" ]
 
-                else if model.blocksOn then
-                    []
-
                 else if index == lastFermatNumberIndex model.triangle then
-                    [ style "color" red ]
+                    emphasisColorStyles red
 
                 else if index == lineThatWasMultipliedIndex model.triangle then
-                    [ style "color" blue ]
+                    emphasisColorStyles blue
 
                 else
                     []
@@ -264,9 +248,9 @@ renderRowDiv model index line =
                 b =
                     lastFermatNumber model.triangle
             in
-            [ span [ style "color" blue ] [ text a ]
-            , span [ style "color" red ] [ text <| remainingDigitsOfWhenMultipliedBy b a ]
-            , span [ style "color" blue ] [ text a ]
+            [ span (emphasisColorStyles blue) [ text a ]
+            , span (emphasisColorStyles red) [ text <| remainingDigitsOfWhenMultipliedBy b a ]
+            , span (emphasisColorStyles blue) [ text a ]
             ]
     in
     div [ style "white-space" "nowrap" ]
@@ -294,25 +278,44 @@ renderCalculationSpans model =
         a =
             optimisticGet (lineThatWasMultipliedIndex model.triangle) model.triangle
 
+        -- TODO: Duplicate.
+        -- When displaying characters as blocks, we do not allow emphasis styling.
+        emphasisColorStyles color =
+            if model.blocksOn then
+                []
+
+            else
+                [ style "color" color ]
+
         b =
             lastFermatNumber model.triangle
     in
     [ span [] [ text " = " ]
-    , span
-        (if not model.blocksOn then
-            [ style "color" blue ]
-
-         else
-            []
-        )
-        (renderStringAsSpans model a)
+    , span (emphasisColorStyles blue) (renderStringAsSpans model a)
     , span [] [ text " x " ]
-    , span
-        (if not model.blocksOn then
-            [ style "color" red ]
-
-         else
-            []
-        )
-        (renderStringAsSpans model b)
+    , span (emphasisColorStyles red) (renderStringAsSpans model b)
     ]
+
+
+renderStringAsSpans : Model -> String -> List (Html msg)
+renderStringAsSpans model s =
+    let
+        blockCharStyles char =
+            if model.blocksOn then
+                case char of
+                    '0' ->
+                        [ style "background-color" orange ]
+
+                    '1' ->
+                        [ style "background-color" green, style "color" white ]
+
+                    _ ->
+                        []
+
+            else
+                []
+
+        charToSpan char =
+            span (blockCharStyles char) [ text <| String.fromChar char ]
+    in
+    List.map charToSpan <| String.toList s
