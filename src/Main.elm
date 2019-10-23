@@ -13,6 +13,10 @@ type alias Triangle =
     Array String
 
 
+type alias Fermat =
+    String
+
+
 type Showing
     = ShowingCalculationAndResult
     | ShowingCalculation
@@ -100,8 +104,11 @@ nextLine triangle =
         let
             lineToMultiply =
                 optimisticGet (numberOfLines - lastFermatNumberIndex triangle) triangle
+
+            ( result, _ ) =
+                multiply (lastFermatNumber triangle) lineToMultiply
         in
-        multiply (lastFermatNumber triangle) lineToMultiply
+        result
 
 
 lastFermatNumberIndex : Triangle -> Int
@@ -121,12 +128,17 @@ lastFermatNumberIndex triangle =
 -- TODO: Explain.
 
 
-lineThatWasMultipliedIndex : Triangle -> Int
-lineThatWasMultipliedIndex triangle =
+currentMultiplicandIndex : Triangle -> Int
+currentMultiplicandIndex triangle =
     Array.length triangle - lastFermatNumberIndex triangle - 1
 
 
-lastFermatNumber : Triangle -> String
+currentMultiplicand : Triangle -> String
+currentMultiplicand triangle =
+    optimisticGet (currentMultiplicandIndex triangle) triangle
+
+
+lastFermatNumber : Triangle -> Fermat
 lastFermatNumber triangle =
     optimisticGet (lastFermatNumberIndex triangle) triangle
 
@@ -135,32 +147,24 @@ lastFermatNumber triangle =
 -- The binary string representation of 2^(2^n) + 1.
 
 
-nthFermatNumber : Int -> String
+nthFermatNumber : Int -> Fermat
 nthFermatNumber n =
     "1" ++ String.repeat (2 ^ n - 1) "0" ++ "1"
 
 
 
 -- "Multiplies" the integers represented by binary strings together, as long as one is a Fermat
--- number.
+-- number. Returns (the result of the multiplication as a string, the digits of fermat that remain
+-- in the result).
 
 
-multiply : String -> String -> String
+multiply : Fermat -> String -> ( String, String )
 multiply fermat s =
-    s ++ remainingDigitsOfWhenMultipliedBy fermat s ++ s
-
-
-
--- TODO: Explain.
-
-
-remainingDigitsOfWhenMultipliedBy : String -> String -> String
-remainingDigitsOfWhenMultipliedBy fermat s =
     let
-        _ =
-            Debug.log "fermat" fermat
+        remainingFermatDigits =
+            String.dropLeft 1 <| String.dropRight (String.length s) fermat
     in
-    String.dropLeft 1 <| String.dropRight (String.length s) fermat
+    ( s ++ remainingFermatDigits ++ s, remainingFermatDigits )
 
 
 
@@ -227,7 +231,7 @@ renderRowDiv model index line =
                 else if index == lastFermatNumberIndex model.triangle then
                     emphasisColorStyles red
 
-                else if index == lineThatWasMultipliedIndex model.triangle then
+                else if index == currentMultiplicandIndex model.triangle then
                     emphasisColorStyles blue
 
                 else
@@ -242,15 +246,18 @@ renderRowDiv model index line =
         -- Show it in pieces to illustrate how the multiplication worked.
         renderLastLineAsSpans =
             let
-                a =
-                    optimisticGet (lineThatWasMultipliedIndex model.triangle) model.triangle
+                s =
+                    currentMultiplicand model.triangle
 
-                b =
+                fermat =
                     lastFermatNumber model.triangle
+
+                ( _, remainingFermatDigits ) =
+                    multiply fermat s
             in
-            [ span (emphasisColorStyles blue) [ text a ]
-            , span (emphasisColorStyles red) [ text <| remainingDigitsOfWhenMultipliedBy b a ]
-            , span (emphasisColorStyles blue) [ text a ]
+            [ span (emphasisColorStyles blue) (renderStringAsSpans model s)
+            , span (emphasisColorStyles red) (renderStringAsSpans model remainingFermatDigits)
+            , span (emphasisColorStyles blue) (renderStringAsSpans model s)
             ]
     in
     div [ style "white-space" "nowrap" ]
@@ -264,7 +271,7 @@ renderRowDiv model index line =
         -- Calculation, if we are displaying one.
         , span []
             (if isLastLine && showingCalculation then
-                [ span [] (renderCalculationSpans model) ]
+                [ span [] <| renderCalculationSpans model ]
 
              else
                 []
@@ -275,8 +282,8 @@ renderRowDiv model index line =
 renderCalculationSpans : Model -> List (Html msg)
 renderCalculationSpans model =
     let
-        a =
-            optimisticGet (lineThatWasMultipliedIndex model.triangle) model.triangle
+        s =
+            currentMultiplicand model.triangle
 
         -- TODO: Duplicate.
         -- When displaying characters as blocks, we do not allow emphasis styling.
@@ -287,13 +294,13 @@ renderCalculationSpans model =
             else
                 [ style "color" color ]
 
-        b =
+        fermat =
             lastFermatNumber model.triangle
     in
     [ span [] [ text " = " ]
-    , span (emphasisColorStyles blue) (renderStringAsSpans model a)
+    , span (emphasisColorStyles blue) (renderStringAsSpans model fermat)
     , span [] [ text " x " ]
-    , span (emphasisColorStyles red) (renderStringAsSpans model b)
+    , span (emphasisColorStyles red) (renderStringAsSpans model s)
     ]
 
 
