@@ -238,11 +238,15 @@ view model =
         rowDivs =
             Array.toList <| Array.indexedMap (\index line -> renderRowDiv model index line) model.triangle
     in
-    div []
-        [ button [ onClick Step ] [ text "Next" ]
-        , button [ onClick ToggleBlocks ] [ text "Toggle Blocks" ]
-        , button [ onClick Reset ] [ text "Reset" ]
-        , div [ style "font-family" "monospace", style "margin" "1rem" ] rowDivs
+    div [ style "margin" "1rem" ]
+        [ div [ style "position" "relative" ]
+            [ div [ style "position" "absolute", style "right" "1rem" ]
+                [ button [ onClick Step ] [ text "Next" ]
+                , button [ onClick ToggleBlocks ] [ text "Toggle Blocks" ]
+                , button [ onClick Reset ] [ text "Reset" ]
+                ]
+            ]
+        , div [ style "font-family" "monospace", style "overflow-y" "auto", style "height" "25rem" ] rowDivs
         ]
 
 
