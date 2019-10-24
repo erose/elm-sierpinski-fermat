@@ -164,6 +164,11 @@ nthFermatNumber n =
     "1" ++ String.repeat (2 ^ n - 1) "0" ++ "1"
 
 
+isPowerOf2 : Int -> Bool
+isPowerOf2 n =
+    isInteger <| logBase 2 (toFloat n)
+
+
 
 -- "Multiplies" the integers represented by binary strings together, as long as one is a Fermat
 -- number. Returns (the result of the multiplication as a string, the digits of fermat that remain
@@ -196,6 +201,11 @@ toDecimal s =
             List.map Tuple.first <| List.filter (\( value, char ) -> char == '1') valuesAndChars
     in
     List.foldl Decimal.add Decimal.zero values
+
+
+toDecimalString : String -> String
+toDecimalString =
+    Decimal.toString << toDecimal
 
 
 
@@ -236,17 +246,55 @@ view : Model -> Html Msg
 view model =
     let
         rowDivs =
-            Array.toList <| Array.indexedMap (\index line -> renderRowDiv model index line) model.triangle
-    in
-    div [ style "margin" "1rem" ]
-        [ div [ style "position" "relative" ]
-            [ div [ style "position" "absolute", style "right" "1rem" ]
-                [ button [ onClick Step ] [ text "Next" ]
-                , button [ onClick ToggleBlocks ] [ text "Toggle Blocks" ]
-                , button [ onClick Reset ] [ text "Reset" ]
+            Array.toList <| Array.indexedMap (\i line -> renderRowDiv model i line) model.triangle
+
+        -- Show this button when there are enough rows to make it interesting.
+        displayToggleBlocks =
+            Array.length model.triangle > 8
+
+        topPanelDiv =
+            div [ style "position" "relative" ]
+                [ rightSideDiv
                 ]
-            ]
-        , div [ style "font-family" "monospace", style "overflow-y" "auto", style "height" "25rem" ] rowDivs
+
+        rightSideDiv =
+            div [ style "position" "absolute", style "right" "1rem", style "display" "flex", style "flex-flow" "column" ]
+                [ buttonsContainerDiv
+                , div [ style "margin-top" "1rem" ] <|
+                    List.concat
+                        [ [ text "Fermat numbers used:" ]
+                        , fermatNumberDivs
+                        ]
+                ]
+
+        fermatNumberDivs =
+            List.map (\line -> div [] [ text (line ++ " = " ++ toDecimalString line) ]) fermatNumbers
+
+        fermatNumbers =
+            List.map Tuple.second <| List.filter (\( i, line ) -> displayLineAtIndexAsFermatNumber i) <| Array.toIndexedList model.triangle
+
+        -- The first element is always "1", and it's confusing to have that in there, so don't display it.
+        -- The Fermat numbers are in the triangle at indices which are a power of 2.
+        -- We don't want to display the last line, as that's technically added to the array before it becomes visible, and if it's displayed then it will be confusing.
+        displayLineAtIndexAsFermatNumber i =
+            (i /= 0) && isPowerOf2 i && (i /= Array.length model.triangle - 1)
+
+        buttonsContainerDiv =
+            div []
+                (List.concat
+                    [ [ button [ onClick Step ] [ text "Next" ] ]
+                    , if displayToggleBlocks then
+                        [ button [ onClick ToggleBlocks ] [ text "Toggle Blocks" ] ]
+
+                      else
+                        []
+                    , [ button [ onClick Reset ] [ text "Reset" ] ]
+                    ]
+                )
+    in
+    div [ style "margin" "1rem", style "font-family" "monospace" ]
+        [ topPanelDiv
+        , div [ style "overflow-y" "auto", style "height" "25rem" ] rowDivs
         ]
 
 
@@ -307,7 +355,7 @@ renderRowDiv model index line =
                     )
                 ]
                 [ div lineStyles renderLastLineAsSpans
-                , div [ style "text-align" "center" ] [ text <| Decimal.toString (toDecimal product) ]
+                , div [ style "text-align" "center" ] [ text <| toDecimalString product ]
                 ]
 
           else
@@ -337,9 +385,9 @@ renderCalculationSpans model =
             colorStylesIfAllowedForModel model
     in
     [ span [] [ text " = " ]
-    , stackedDiv model (colorStylesFor red) fermat (Decimal.toString <| toDecimal fermat)
+    , stackedDiv model (colorStylesFor red) fermat (toDecimalString fermat)
     , span [] [ text " x " ]
-    , stackedDiv model (colorStylesFor blue) multiplicand (Decimal.toString <| toDecimal multiplicand)
+    , stackedDiv model (colorStylesFor blue) multiplicand (toDecimalString multiplicand)
     ]
 
 
