@@ -1,9 +1,9 @@
 module Main exposing (..)
 
 import Array exposing (Array)
-import Bitwise
 import Browser
 import Debug
+import Decimal exposing (Decimal)
 import Html exposing (Html, button, div, span, text)
 import Html.Attributes exposing (class, style)
 import Html.Events exposing (onClick)
@@ -48,6 +48,10 @@ type Msg
     = Step
     | ToggleBlocks
     | Reset
+
+
+
+-- UPDATE
 
 
 update : Msg -> Model -> Model
@@ -176,6 +180,25 @@ multiply fermat s =
 
 
 
+-- Converts a binary string (of zeroes and ones) to an infinite-precision decimal.
+
+
+toDecimal : String -> Decimal
+toDecimal s =
+    let
+        reversedChars =
+            List.reverse <| String.toList s
+
+        valuesAndChars =
+            List.indexedMap (\i char -> ( Decimal.fromInt <| 2 ^ i, char )) reversedChars
+
+        values =
+            List.map Tuple.first <| List.filter (\( value, char ) -> char == '1') valuesAndChars
+    in
+    List.foldl Decimal.add Decimal.zero values
+
+
+
 -- VIEW
 
 
@@ -255,18 +278,18 @@ renderRowDiv model index line =
         -- Show it in pieces to illustrate how the multiplication worked.
         renderLastLineAsSpans =
             let
-                s =
+                multiplicand =
                     currentMultiplicand model.triangle
 
                 fermat =
                     lastFermatNumber model.triangle
 
                 ( _, remainingFermatDigits ) =
-                    multiply fermat s
+                    multiply fermat multiplicand
             in
-            [ span (colorStylesFor blue) (renderStringAsSpans model s)
+            [ span (colorStylesFor blue) (renderStringAsSpans model multiplicand)
             , span (colorStylesFor red) (renderStringAsSpans model remainingFermatDigits)
-            , span (colorStylesFor blue) (renderStringAsSpans model s)
+            , span (colorStylesFor blue) (renderStringAsSpans model multiplicand)
             ]
     in
     div [ style "white-space" "nowrap" ]
@@ -280,7 +303,7 @@ renderRowDiv model index line =
         -- Calculation, if we are displaying one.
         , span []
             (if isLastLine && showingCalculation then
-                [ span [] <| renderCalculationSpans model ]
+                [ span [] (renderCalculationSpans model) ]
 
              else
                 []
@@ -291,20 +314,32 @@ renderRowDiv model index line =
 renderCalculationSpans : Model -> List (Html msg)
 renderCalculationSpans model =
     let
-        s =
+        multiplicand =
             currentMultiplicand model.triangle
-
-        colorStylesFor =
-            colorStylesIfAllowedForModel model
 
         fermat =
             lastFermatNumber model.triangle
+
+        colorStylesFor =
+            colorStylesIfAllowedForModel model
     in
     [ span [] [ text " = " ]
-    , span (colorStylesFor blue) (renderStringAsSpans model fermat)
+    , stackedDiv model (colorStylesFor red) fermat (Decimal.toString <| toDecimal fermat)
     , span [] [ text " x " ]
-    , span (colorStylesFor red) (renderStringAsSpans model s)
+    , stackedDiv model (colorStylesFor blue) multiplicand (Decimal.toString <| toDecimal multiplicand)
     ]
+
+
+
+-- Render an (inline) div that contains one string on the top and one string on the bottom.
+
+
+stackedDiv : Model -> List (Html.Attribute msg) -> String -> String -> Html msg
+stackedDiv model additionalStyles top bottom =
+    div (List.append additionalStyles [ style "display" "inline-flex", style "flex-flow" "column" ])
+        [ div [] (renderStringAsSpans model top)
+        , div [ style "text-align" "center" ] [ text bottom ]
+        ]
 
 
 
