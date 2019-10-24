@@ -257,10 +257,7 @@ renderRowDiv model index line =
 
         lineStyles =
             List.append [ style "white-space" "nowrap" ] <|
-                if isLastLine && not showingLastLine then
-                    [ style "visibility" "hidden" ]
-
-                else if line == lastFermatNumber model.triangle then
+                if line == lastFermatNumber model.triangle then
                     colorStylesFor red
 
                 else if line == currentMultiplicand model.triangle then
@@ -275,18 +272,17 @@ renderRowDiv model index line =
         showingLastLine =
             model.showing == ShowingCalculationAndResult
 
+        multiplicand =
+            currentMultiplicand model.triangle
+
+        fermat =
+            lastFermatNumber model.triangle
+
+        ( product, remainingFermatDigits ) =
+            multiply fermat multiplicand
+
         -- Show it in pieces to illustrate how the multiplication worked.
         renderLastLineAsSpans =
-            let
-                multiplicand =
-                    currentMultiplicand model.triangle
-
-                fermat =
-                    lastFermatNumber model.triangle
-
-                ( _, remainingFermatDigits ) =
-                    multiply fermat multiplicand
-            in
             [ span (colorStylesFor blue) (renderStringAsSpans model multiplicand)
             , span (colorStylesFor red) (renderStringAsSpans model remainingFermatDigits)
             , span (colorStylesFor blue) (renderStringAsSpans model multiplicand)
@@ -295,7 +291,20 @@ renderRowDiv model index line =
     div [ style "white-space" "nowrap" ]
         [ --  Content of the line.
           if isLastLine then
-            span lineStyles renderLastLineAsSpans
+            div
+                [ style "display" "inline-flex"
+                , style "flex-flow" "column"
+                , style "visibility"
+                    (if not showingLastLine then
+                        "hidden"
+
+                     else
+                        ""
+                    )
+                ]
+                [ div lineStyles renderLastLineAsSpans
+                , div [ style "text-align" "center" ] [ text <| Decimal.toString (toDecimal product) ]
+                ]
 
           else
             span lineStyles <| renderStringAsSpans model line
